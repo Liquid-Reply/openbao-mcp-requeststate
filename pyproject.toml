@@ -1,0 +1,14 @@
+[project]
+name = "openbao-mcp-requeststate"
+version = "0.1.0"
+description = "Securing MCP 2026-07-28 multi-round-trip requestState with OpenBao"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp[cli]==2.0.0b1",
+    "httpx>=0.28",
+    "anyio>=4.5",
+]
+
+[tool.uv]
+# The MCP SDK for the 2026-07-28 spec RC is a beta release.
+prerelease = "allow"

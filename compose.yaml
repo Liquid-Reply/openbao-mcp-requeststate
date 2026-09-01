@@ -1,0 +1,14 @@
+# OpenBao in dev mode, for readers who prefer a container over `brew install openbao`.
+#   docker compose up -d     (or: podman compose up -d)
+# Dev mode only: in-memory storage, auto-unsealed, root token "demo-root".
+services:
+  openbao:
+    image: openbao/openbao:2.6.2
+    container_name: openbao-dev
+    ports:
+      - "127.0.0.1:8200:8200"
+    environment:
+      BAO_DEV_ROOT_TOKEN_ID: demo-root
+      BAO_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
