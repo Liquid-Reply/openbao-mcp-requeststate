@@ -85,7 +85,9 @@ async def purge_objects(prefix: str, ctx: Context) -> str | InputRequiredResult:
         )
 
     # ---- Round 2: the boundary already proved this state is ours, fresh,
-    # and bound to this tool + these arguments. Enforce single-use and act. ----
+    # and bound to this tool + these arguments. Redeem once, then act. The
+    # unwrap and purge are not atomic; production execution needs idempotency,
+    # a durable ledger, or transactional coupling for stronger guarantees. ----
     claim = json.loads(state)["claim"]
     answer = answers[CONFIRM_KEY]
     content = getattr(answer, "content", None) or {}

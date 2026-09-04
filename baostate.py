@@ -103,7 +103,7 @@ class OpenBao:
         return resp.json()["wrap_info"]["token"]
 
     def unwrap(self, token: str) -> dict[str, Any]:
-        """Redeem a wrapping token. Exactly one call can ever succeed."""
+        """Redeem a wrapping token. At most one unwrap can succeed."""
         resp = self._post("/sys/wrapping/unwrap", {"token": token})
         if resp.status_code in (400, 403, 404):
             raise AlreadyRedeemed("confirmation token already used, expired, or unknown")
@@ -162,9 +162,13 @@ class SingleUse:
 
     The claims envelope bounds *where* and *until when* a `requestState` is
     valid, but a valid one can still be presented twice. For a destructive
-    confirmation the spec requires at-most-once semantics enforced
-    server-side; a wrapping token is exactly that: TTL-bound, audit-logged,
-    and dead the moment it is unwrapped.
+    confirmation the spec requires at-most-once redemption enforced
+    server-side; a wrapping token is TTL-bound and dead the moment it is
+    unwrapped. OpenBao records the operation when an audit device is enabled.
+
+    Redemption is not transactionally coupled to the protected operation. A
+    crash after unwrap can therefore consume the authorization before the
+    operation completes.
     """
 
     def __init__(self, bao: OpenBao, ttl_seconds: int = 120) -> None:
