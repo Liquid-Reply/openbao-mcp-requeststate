@@ -1,6 +1,7 @@
-# Least-privilege policy for the MCP server's OpenBao identity.
-# The server can fetch the shared request-state key ring, use (but never
-# read) the Transit key, and wrap/unwrap single-use confirmation payloads.
+# Combined policy for demo convenience. It lets the server fetch the shared
+# request-state key ring, use (but never read) the Transit key, and wrap/unwrap
+# confirmation payloads. Production key-ring and Transit deployments should
+# use separate AppRoles/policies to preserve the key-custody boundary.
 
 # Key ring for the SDK's built-in AES-GCM codec (KV v2 read is "data/<path>").
 path "secret/data/mcp/request-state-keys" {

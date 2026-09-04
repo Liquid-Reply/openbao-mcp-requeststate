@@ -12,9 +12,9 @@ the three things the SDK's built-in request-state protection cannot:
 
 | Property | OpenBao feature | Code |
 |---|---|---|
-| One sealing key ring for all stateless replicas, with rotation | KV v2 | `load_key_ring()` in [baostate.py](baostate.py) |
+| One startup sealing key ring for all stateless replicas | KV v2 | `load_key_ring()` in [baostate.py](baostate.py) |
 | AEAD keys that never enter application memory | Transit engine | `TransitCodec` in [baostate.py](baostate.py) |
-| At-most-once redemption of a destructive confirmation | Response wrapping | `SingleUse` in [baostate.py](baostate.py) |
+| At-most-once redemption of a destructive authorization | Response wrapping | `SingleUse` in [baostate.py](baostate.py) |
 
 Integrity, confidentiality, expiry, request binding, audience, and principal
 binding are enforced by the MCP Python SDK's `RequestStateBoundary`
@@ -53,11 +53,16 @@ runs [demo.py](demo.py):
     replay same state    -> REFUSED: this confirmation was already used ...
 ```
 
-Key rotation, zero-downtime (`keys[0]` seals, every key unseals):
+The demo loads its shared ring at process startup; it does not implement live
+reloads or zero-downtime rotation. Production rotation must stage `[old,new]`
+and reload every replica, activate `[new,old]` and reload again, wait one full
+state TTL after activation completes, then retire to `[new]` and reload again.
+The helpers below only mutate KV (and the Transit key); they do not coordinate
+replica reloads:
 
 ```bash
-./openbao/setup.sh rotate   # fresh sealing key; old keys still unseal
-./openbao/setup.sh retire   # after one state TTL: drop old keys
+./openbao/setup.sh rotate   # immediately writes [new,old]
+./openbao/setup.sh retire   # drops old keys
 ```
 
 ## Files
@@ -76,3 +81,11 @@ device (every seal-key read, transit call, and unwrap then leaves a log
 line), and secret-id delivery for AppRole. With OAuth on the MCP server, the
 SDK additionally binds each `requestState` to the authenticated principal —
 no extra code here.
+
+The demo also uses one combined AppRole for convenience. Production key-ring
+and Transit deployments should use separate identities and policies so a
+Transit-only server cannot read the KV key ring. Likewise, response wrapping
+guarantees at-most-once authorization redemption, not atomic execution: a
+crash after unwrap can leave the operation incomplete while making the token
+unusable. Use idempotent operations, a durable operation ledger, or
+transactional coupling when stronger execution guarantees are required.

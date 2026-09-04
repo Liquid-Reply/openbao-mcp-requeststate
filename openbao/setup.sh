@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# One-time OpenBao setup for the demo, plus a key-rotation helper.
+# One-time OpenBao setup for the demo, plus key-ring mutation helpers.
+# These helpers do not reload replicas and therefore do not by themselves
+# implement zero-downtime rotation.
 #
 #   ./openbao/setup.sh init      enable engines, mint key ring, create AppRole
 #   ./openbao/setup.sh rotate    prepend a fresh sealing key, keep old for unseal
@@ -47,23 +49,23 @@ case "${1:-init}" in
     ;;
 
   rotate)
-    # New key seals from now on; old keys still unseal in-flight rounds.
-    # (In a rolling fleet, distribute the new key for unsealing first —
-    # keys=[old,new] — before any replica starts sealing with it.)
+    # This immediately publishes [new,old]. Running replicas do not see it.
+    # Production fleets must first stage [old,new] and reload every replica,
+    # then activate [new,old] and reload every replica.
     current=$(bao kv get -field=keys "${KV_MOUNT}/${KEY_PATH}")
     bao kv put "${KV_MOUNT}/${KEY_PATH}" keys="$(new_key),${current}" > /dev/null
     bao write -f "transit/keys/${TRANSIT_KEY}/rotate" > /dev/null
-    echo "Rotated. Ring now seals with a fresh key; old keys unseal until you 'retire'."
+    echo "Published [new,old]. Reload coordination is external to this demo."
     ;;
 
   retire)
-    # After one request-state TTL has passed, nothing sealed under the old
-    # keys can still be in flight — drop them.
+    # Only run after activation has reached every replica and one full
+    # request-state TTL has elapsed. Running replicas still require reloads.
     current=$(bao kv get -field=keys "${KV_MOUNT}/${KEY_PATH}")
     bao kv put "${KV_MOUNT}/${KEY_PATH}" keys="${current%%,*}" > /dev/null
     min_version=$(bao read -field=latest_version "transit/keys/${TRANSIT_KEY}")
     bao write "transit/keys/${TRANSIT_KEY}/config" min_decryption_version="${min_version}" > /dev/null
-    echo "Retired old keys; only the current sealing key remains."
+    echo "Published [current] and retired old keys. Reload replicas separately."
     ;;
 
   *)
