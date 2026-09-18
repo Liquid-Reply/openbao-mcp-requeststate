@@ -18,8 +18,8 @@ the three things the SDK's built-in request-state protection cannot:
 
 Integrity, confidentiality, expiry, request binding, audience, and principal
 binding are enforced by the MCP Python SDK's `RequestStateBoundary`
-(`mcp==2.0.0b1`); this repo plugs OpenBao into its `RequestStateSecurity`
-hook rather than reinventing the envelope.
+(stable `mcp>=2.0`, verified up to 2.2.0); this repo plugs OpenBao into its
+`RequestStateSecurity` hook rather than reinventing the envelope.
 
 ## Run it
 
